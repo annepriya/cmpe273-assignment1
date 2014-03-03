@@ -3,19 +3,24 @@ package edu.sjsu.cmpe.library.domain;
 import java.util.ArrayList;
 
 import edu.sjsu.cmpe.library.dto.LinksDto;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 
 public class Book {
     private long isbn;
     private String title;
+    @JsonProperty("publication-date")
     private String publicationDate;
     private String language;
+    @JsonProperty("num-pages")
     private String numPages;
     private String status="available";
    
 
 	
 	private ArrayList<Author> authors;
+	private ArrayList<Review> reviews;
+	
 	
 
 	
@@ -24,7 +29,15 @@ public class Book {
 
     // add more fields here
 
-    public ArrayList<Author> getAuthors() {
+    public ArrayList<Review> getReviews() {
+		return reviews;
+	}
+
+	public void setReviews(ArrayList<Review> reviews) {
+		this.reviews = reviews;
+	}
+
+	public ArrayList<Author> getAuthors() {
 		return authors;
 	}
 
@@ -32,9 +45,7 @@ public class Book {
 		this.authors = authors;
 	}
 	
-	public void createAuthorLinks(ArrayList<LinksDto> authors){
-		
-	}
+	
 
 	/**
      * @return the isbn

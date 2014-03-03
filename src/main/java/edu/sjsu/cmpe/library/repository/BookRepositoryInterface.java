@@ -4,6 +4,7 @@ import javax.ws.rs.core.MultivaluedMap;
 
 import edu.sjsu.cmpe.library.domain.Author;
 import edu.sjsu.cmpe.library.domain.Book;
+import edu.sjsu.cmpe.library.domain.Review;
 
 /**
  * Book repository interface.
@@ -33,8 +34,9 @@ public interface BookRepositoryInterface {
     
     void deleteBook(Book existingBook);
     
-    Book updateBook(Book bookToUpdate ,String value);
+    Book updateBook(Book updateBook ,Long authorId ,MultivaluedMap<String, String> params);
     Book updateBook(Book updateBook , MultivaluedMap<String, String> params);
+    void saveReviewToBook(Book book ,Review review);
 
     // TODO: add other operations here!
 }
