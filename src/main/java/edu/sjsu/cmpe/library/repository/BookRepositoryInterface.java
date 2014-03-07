@@ -5,6 +5,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import edu.sjsu.cmpe.library.domain.Author;
 import edu.sjsu.cmpe.library.domain.Book;
 import edu.sjsu.cmpe.library.domain.Review;
+import edu.sjsu.cmpe.library.dto.BookDetail;
+
 
 /**
  * Book repository interface.
@@ -21,7 +23,7 @@ public interface BookRepositoryInterface {
      *            a book instance to be create in the repository
      * @return a newly created book instance with auto-generated ISBN
      */
-    Book saveBook(Book newBook);
+    BookDetail saveBook(BookDetail newBook);
 
     /**
      * Retrieve an existing book by ISBN
@@ -30,13 +32,13 @@ public interface BookRepositoryInterface {
      *            a valid ISBN
      * @return a book instance
      */
-    Book getBookByISBN(Long isbn);
+    BookDetail getBookByISBN(Long isbn);
     
     void deleteBook(Book existingBook);
     
-    Book updateBook(Book updateBook ,Long authorId ,MultivaluedMap<String, String> params);
-    Book updateBook(Book updateBook , MultivaluedMap<String, String> params);
-    void saveReviewToBook(Book book ,Review review);
+    Book updateBook(BookDetail updateBook ,Long authorId ,MultivaluedMap<String, String> params);
+    Book updateBook(BookDetail updateBook , MultivaluedMap<String, String> params);
+    void saveReviewToBook(BookDetail book ,Review review);
 
     // TODO: add other operations here!
 }

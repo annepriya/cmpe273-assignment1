@@ -1,25 +1,45 @@
 package edu.sjsu.cmpe.library.domain;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import edu.sjsu.cmpe.library.dto.LinksDto;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+import edu.sjsu.cmpe.library.dto.LinkDto;
 
-public class Book {
+@JsonPropertyOrder({ "isbn", "title", "publication-date", "language", "num-pages", "status", "reviews", "authors"})
+public class Book  {
+	
     private long isbn;
+	
     private String title;
     @JsonProperty("publication-date")
     private String publicationDate;
+  
     private String language;
     @JsonProperty("num-pages")
     private String numPages;
+    @JsonProperty("status")
     private String status="available";
+    @JsonProperty
+    private ArrayList<Review> reviews = new ArrayList<Review>();
+    
+ 
+    
    
-
+    
+  
+   
+   
+    
+    
 	
-	private ArrayList<Author> authors;
-	private ArrayList<Review> reviews;
 	
 	
 
@@ -29,7 +49,10 @@ public class Book {
 
     // add more fields here
 
-    public ArrayList<Review> getReviews() {
+	
+	
+
+	public ArrayList<Review> getReviews() {
 		return reviews;
 	}
 
@@ -37,16 +60,7 @@ public class Book {
 		this.reviews = reviews;
 	}
 
-	public ArrayList<Author> getAuthors() {
-		return authors;
-	}
-
-	public void setAuthors(ArrayList<Author> authors) {
-		this.authors = authors;
-	}
 	
-	
-
 	/**
      * @return the isbn
      */

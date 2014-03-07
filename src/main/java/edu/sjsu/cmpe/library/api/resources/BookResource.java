@@ -13,27 +13,33 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import javax.xml.bind.JAXBElement;
 
-import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
+
+
+
+
+
+
+
 import com.yammer.dropwizard.jersey.params.LongParam;
 import com.yammer.metrics.annotation.Timed;
-
 import edu.sjsu.cmpe.library.domain.Author;
 import edu.sjsu.cmpe.library.domain.Book;
+import edu.sjsu.cmpe.library.domain.ErrorHandling;
 import edu.sjsu.cmpe.library.domain.Review;
+import edu.sjsu.cmpe.library.dto.AuthorArrayDto;
 import edu.sjsu.cmpe.library.dto.AuthorDto;
-import edu.sjsu.cmpe.library.dto.BookDto;
+import edu.sjsu.cmpe.library.dto.AuthorsDto;
+import edu.sjsu.cmpe.library.dto.BookDetail;
 import edu.sjsu.cmpe.library.dto.LinkDto;
 import edu.sjsu.cmpe.library.dto.LinksDto;
 import edu.sjsu.cmpe.library.dto.ReviewDto;
-import edu.sjsu.cmpe.library.repository.AuthorRepository;
+import edu.sjsu.cmpe.library.dto.ReviewsDto;
 import edu.sjsu.cmpe.library.repository.BookRepositoryInterface;
 
 @Path("/v1/books")
@@ -59,56 +65,94 @@ public class BookResource {
     @GET
     @Path("/{isbn}")
     @Timed(name = "view-book")
-    public BookDto getBookByIsbn(@PathParam("isbn") LongParam isbn) {
+    public AuthorsDto getBookByIsbn(@PathParam("isbn") LongParam isbn) {
     
-	Book book = bookRepository.getBookByISBN(isbn.get());
+	BookDetail book =  bookRepository.getBookByISBN(isbn.get());
+	Book originalBook=createBookToView(book);
 	checkNotNull(book, " Book does not exist");
 	
+		Author[] authorsList=book.getAuthors();
+		int counter=0;
+		int size=authorsList.length;
+		List<LinkDto> authors= new ArrayList<LinkDto>();
+	
+		while(size>0){
+			String location1="/books" +book.getIsbn()+"/authors/" +authorsList[counter].getId();
+			
+			authors.add(new LinkDto("view-author",location1, "POST"));
+	           counter++;
+	           size--;
+		}
+		AuthorsDto bookResponse=new AuthorsDto(authors);
+	    bookResponse.setBook(originalBook);
+		String location="/books/" + book.getIsbn();
 	
 	
-	BookDto bookResponse = new BookDto(book);
-	
-	bookResponse.addLink(new LinkDto("view-book", "/books/" + book.getIsbn(),
-		"GET"));
-	bookResponse.addLink(new LinkDto("update-book",
-		"/books/" + book.getIsbn(), "POST"));
 	// add more links
 	
-	int counter=0;
-	if(book.getAuthors()!=null){
-	int size=book.getAuthors().size();
-	//ArrayList<LinkDto> authorLinks = new ArrayList<LinkDto>();
-	while(size>0){
-		
-		//authorLinks.add(new LinkDto("view-author", "/books" +book.getIsbn()+"/authors" +book.getAuthors().get(counter), "POST"));
-		bookResponse.addLink(new LinkDto("view-author", "/books/" +book.getIsbn()+"/authors/" +book.getAuthors().get(counter).getId(), "GET"));
-           counter++;
-           size--;
-	}
 	
 
-	}
-
+	bookResponse.addLink(new LinkDto("create-book", location, "POST"));
+	bookResponse.addLink(new LinkDto("update-book", location, "PUT"));
+	bookResponse.addLink(new LinkDto("delete-book",location, "DELETE"));
+	bookResponse.addLink(new LinkDto("create-review", location, "POST"));
+	if(book.getReviews()!=null)
+		bookResponse.addLink(new LinkDto("view-all-reviews", location+"/reviews", "GET"));
+	
+	
 	return bookResponse;
 	}
 	
 	
-    
-
-    @POST
-    @Timed(name = "create-book")
-    public Response createBook(Book request , Author author) {
-	// Store the new book in the BookRepository so that we can retrieve it.
+	
+	 private Book createBookToView(BookDetail book) {
+		// TODO Auto-generated method stub
+    	Book originalbook=new Book();
+    	originalbook.setIsbn(book.getIsbn());
+    	originalbook.setLanguage(book.getLanguage());
+    	originalbook.setNumPages(book.getNumPages());
+    	originalbook.setPublicationDate(book.getPublicationDate());
+    	originalbook.setReviews(book.getReviews());
+    	originalbook.setTitle(book.getTitle());
+    	originalbook.setStatus(book.getStatus());
+    	return originalbook;
     	
-	Book savedBook = bookRepository.saveBook(request);
+		
+	}
+
+	@POST
+    @Timed(name = "create-book")
+    public Response createBook(BookDetail request) {
+		ErrorHandling error =new ErrorHandling();
+	// Store the new book in the BookRepository so that we can retrieve it.
+    	if((request.getPublicationDate()!=null) && request.getTitle()!=null){
+    System.out.println("request.getStatus().toLowerCase()"+request.getStatus().toLowerCase());
+    if(!request.getStatus().equalsIgnoreCase("available") &&
+			!request.getStatus().equalsIgnoreCase("lost") &&
+			!request.getStatus().equalsIgnoreCase("checked-out") &&
+			!request.getStatus().equalsIgnoreCase("in-queue")){
+    			error.setStatusCode("400");
+        		error.setErrorDesc("status should be {available,lost,checked-out,in-queue} in lower case letters");
+        		return Response.status(400).entity(error).build();
+
+    		}
+	BookDetail savedBook = bookRepository.saveBook(request);
 
 	String location = "/books/" + savedBook.getIsbn();
-	BookDto bookResponse = new BookDto(savedBook);
-	bookResponse.addLink(new LinkDto("view-book", location, "GET"));
-	bookResponse.addLink(new LinkDto("update-book", location, "POST"));
 	// Add other links if needed
-
-	return Response.status(201).entity(bookResponse).build();
+	LinksDto links = new LinksDto();
+	links.addLink(new LinkDto("create-book",  location, "POST"));
+	links.addLink(new LinkDto("update-book",  location, "PUT"));
+	links.addLink(new LinkDto("delete-book",  location, "DELETE"));
+	links.addLink(new LinkDto("create-review",location+"/reviews", "POST"));
+	
+	return Response.status(200).entity(links).build();
+    	}else{
+    		
+    		error.setStatusCode("400");
+    		error.setErrorDesc("title and publication-date are required fields");
+    		return Response.status(400).entity(error).build();
+    	}
     }
     
    @DELETE
@@ -130,22 +174,37 @@ public class BookResource {
    @Timed( name = "update-book")
    public Response updateBook(@PathParam("isbn") LongParam isbn  ,@Context UriInfo uriInfo ) {
 	   
-	  
-	   Book book = bookRepository.getBookByISBN(isbn.get());
+	
+	   BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
 		checkNotNull(book, " Book does not exist");
+		
+		
 		MultivaluedMap<String, String> queryParams = uriInfo.getQueryParameters();
-		
-		
-		//bookRepository.updateBook(book,title);
+		String  status =queryParams.getFirst("status");
+		if(status!=null){
+			if(!status.equalsIgnoreCase("available") &&
+					!status.equalsIgnoreCase("lost") &&
+					!status.equalsIgnoreCase("checked-out") &&
+					!status.equalsIgnoreCase("in-queue")){
+				  ErrorHandling error=new ErrorHandling();
+    			error.setStatusCode("400");
+        		error.setErrorDesc("status should be {available,lost,checked-out,in-queue} in lower case letters");
+        		return Response.status(400).entity(error).build();
+
+    		}
+			
+		}
 		bookRepository.updateBook(book, queryParams);
+		String location="/books/"+book.getIsbn();
 		LinksDto links = new LinksDto();
-		links.addLink(new LinkDto("create-book", "/books", "POST"));
-		links.addLink(new LinkDto("update-book", "/books", "PUT"));
-		links.addLink(new LinkDto("delete-book", "/books", "DELETE"));
+		links.addLink(new LinkDto("create-book", location, "POST"));
+		links.addLink(new LinkDto("update-book", location, "PUT"));
+		links.addLink(new LinkDto("delete-book",location, "DELETE"));
+		links.addLink(new LinkDto("create-review", location, "POST"));
+		if(book.getReviews()!=null)
+			links.addLink(new LinkDto("view-all-reviews", location+"/reviews", "GET"));
 		return Response.status(200).entity(links).build();
 		
-		
-   
    }
    
   
@@ -155,7 +214,7 @@ public class BookResource {
    @Timed( name = "update-author")
    public Response updateAuthor(@PathParam("isbn") LongParam isbn,@PathParam("id") LongParam id,@Context UriInfo uriInfo){
 	   
-	   Book book = bookRepository.getBookByISBN(isbn.get());
+	   BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
 		checkNotNull(book, " Book does not exist");
 		MultivaluedMap<String, String> queryParams = uriInfo.getQueryParameters();
 		long authorId=id.get();
@@ -173,11 +232,12 @@ public class BookResource {
    @GET
    @Path("/{isbn}/authors")
    @Timed( name = "view-all-authors")
-   public List viewAllAuthors(@PathParam("isbn") LongParam isbn){
-	   Book book = bookRepository.getBookByISBN(isbn.get());
+   public AuthorArrayDto viewAllAuthors(@PathParam("isbn") LongParam isbn){
+	   BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
 	   checkNotNull(book, " Book does not exist");
-	   List<Author> authors = new ArrayList<Author>();
-	   authors=book.getAuthors();
+	   Author[] authorArray =book.getAuthors();
+	   AuthorArrayDto authors=new AuthorArrayDto(authorArray);
+	  
 	   return authors;
    }
    
@@ -185,18 +245,19 @@ public class BookResource {
    @Path("/{isbn}/authors/{id}")
    @Timed( name = "view-author")
    public AuthorDto viewAuthor(@PathParam("isbn") LongParam isbn ,@PathParam("id") LongParam id){
-	   Book book = bookRepository.getBookByISBN(isbn.get());
+	   BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
 	   checkNotNull(book, " Book does not exist");
 	   Author author=new Author();
 	  long authorId=id.get();
 		
-		ArrayList<Author> authors=book.getAuthors();
-		int authorCount=authors.size();
+		Author[] authors=book.getAuthors();
+		int authorCount=authors.length;
 		int index=0;
+		
 		while(authorCount>0){
-			if(authors.get(index).getId()== authorId){
+			if( authors[index].getId()== authorId){
 				author.setId(authorId);
-				author.setName(authors.get(index).getName());
+				author.setName( authors[index].getName());
 				
 			}
 			index++;
@@ -221,7 +282,7 @@ public class BookResource {
    @Timed(name="create-review")
    public Response createBookReview(Review review,@PathParam("isbn") LongParam isbn){
 	   checkNotNull(review,"review can't be null");
-	   Book book=bookRepository.getBookByISBN(isbn.get());
+	   BookDetail book=(BookDetail) bookRepository.getBookByISBN(isbn.get());
 	   bookRepository.saveReviewToBook(book,review);
 	   LinksDto links = new LinksDto();
 		links.addLink(new LinkDto("view-review", "/books/"+isbn+"/reviews/"+review.getId(), "GET"));
@@ -234,7 +295,7 @@ public class BookResource {
    @Timed(name="view-review")
    public ReviewDto viewBookReview(@PathParam("isbn") LongParam isbn ,@PathParam("id") LongParam reviewId){
    
-   Book book=bookRepository.getBookByISBN(isbn.get());
+   BookDetail book=(BookDetail) bookRepository.getBookByISBN(isbn.get());
    checkNotNull(book,"book does not exist");
    long id=reviewId.get();
    Review review=new Review();
@@ -259,10 +320,11 @@ public class BookResource {
    @GET
    @Path("{isbn}/reviews")
    @Timed(name="view-all-reviews")
-   public ArrayList<Review> viewAllReviews(@PathParam("isbn") LongParam isbn){
-	   Book book=bookRepository.getBookByISBN(isbn.get());
+   public ReviewsDto viewAllReviews(@PathParam("isbn") LongParam isbn){
+	   BookDetail book=(BookDetail) bookRepository.getBookByISBN(isbn.get());
 	   checkNotNull(book,"book does not exist");
-	   ArrayList<Review> reviews=book.getReviews();
+	   ArrayList<Review> reviewList=book.getReviews();
+	   ReviewsDto reviews =new ReviewsDto(reviewList);
 	   return reviews;
 	   
    }
