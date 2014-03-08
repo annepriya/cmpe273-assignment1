@@ -1,11 +1,9 @@
 package edu.sjsu.cmpe.library.repository;
 
 import javax.ws.rs.core.MultivaluedMap;
-
-import edu.sjsu.cmpe.library.domain.Author;
 import edu.sjsu.cmpe.library.domain.Book;
 import edu.sjsu.cmpe.library.domain.Review;
-import edu.sjsu.cmpe.library.dto.BookDetail;
+import edu.sjsu.cmpe.library.domain.BookDetail;
 
 
 /**

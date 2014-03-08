@@ -17,17 +17,16 @@ import edu.sjsu.cmpe.library.dto.LinksDto;
 @Consumes(MediaType.APPLICATION_JSON)
 public class RootResource {
 
-    public RootResource() {
-	// do nothing
-    }
+	public RootResource() {
+		// do nothing
+	}
 
-    @GET
-    @Timed(name = "get-root")
-    public Response getRoot() {
-	LinksDto links = new LinksDto();
-	links.addLink(new LinkDto("create-book", "/books", "POST"));
+	@GET
+	@Timed(name = "get-root")
+	public Response getRoot() {
+		LinksDto links = new LinksDto();
+		links.addLink(new LinkDto("create-book", "/books", "POST"));
 
-	return Response.ok(links).build();
-    }
+		return Response.ok(links).build();
+	}
 }
-

@@ -1,7 +1,9 @@
 package edu.sjsu.cmpe.library.dto;
 
-import edu.sjsu.cmpe.library.domain.Review;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
+import edu.sjsu.cmpe.library.domain.Review;
+@JsonPropertyOrder({"review" ,"links"})
 public class ReviewDto extends LinksDto{
 	
 	private Review review;

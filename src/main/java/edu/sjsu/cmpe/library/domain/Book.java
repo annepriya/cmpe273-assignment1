@@ -1,56 +1,28 @@
 package edu.sjsu.cmpe.library.domain;
 
 import java.util.ArrayList;
-import java.util.List;
-
-import edu.sjsu.cmpe.library.dto.LinksDto;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import javax.validation.constraints.NotNull;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import edu.sjsu.cmpe.library.dto.LinkDto;
+@JsonPropertyOrder({ "isbn", "title", "publication-date", "language",
+		"num-pages", "status", "reviews", "authors" })
+public class Book {
 
-@JsonPropertyOrder({ "isbn", "title", "publication-date", "language", "num-pages", "status", "reviews", "authors"})
-public class Book  {
-	
-    private long isbn;
-	
-    private String title;
-    @JsonProperty("publication-date")
-    private String publicationDate;
-  
-    private String language;
-    @JsonProperty("num-pages")
-    private String numPages;
-    @JsonProperty("status")
-    private String status="available";
-    @JsonProperty
-    private ArrayList<Review> reviews = new ArrayList<Review>();
-    
- 
-    
-   
-    
-  
-   
-   
-    
-    
-	
-	
-	
+	private long isbn;
+	@NotNull(message = "{title cannot be empty}")
+	private String title;
+	@NotNull(message = "{publication-date cannot be empty}")
+	@JsonProperty("publication-date")
+	private String publicationDate;
 
-	
-    
-    
+	private String language;
+	@JsonProperty("num-pages")
+	private String numPages;
 
-    // add more fields here
-
-	
-	
+	private String status = "available";
+	@JsonProperty
+	private ArrayList<Review> reviews = new ArrayList<Review>();
 
 	public ArrayList<Review> getReviews() {
 		return reviews;
@@ -60,36 +32,35 @@ public class Book  {
 		this.reviews = reviews;
 	}
 
-	
 	/**
-     * @return the isbn
-     */
-    public long getIsbn() {
-	return isbn;
-    }
+	 * @return the isbn
+	 */
+	public long getIsbn() {
+		return isbn;
+	}
 
-    /**
-     * @param isbn
-     *            the isbn to set
-     */
-    public void setIsbn(long isbn) {
-	this.isbn = isbn;
-    }
+	/**
+	 * @param isbn
+	 *            the isbn to set
+	 */
+	public void setIsbn(long isbn) {
+		this.isbn = isbn;
+	}
 
-    /**
-     * @return the title
-     */
-    public String getTitle() {
-	return title;
-    }
+	/**
+	 * @return the title
+	 */
+	public String getTitle() {
+		return title;
+	}
 
-    /**
-     * @param title
-     *            the title to set
-     */
-    public void setTitle(String title) {
-	this.title = title;
-    }
+	/**
+	 * @param title
+	 *            the title to set
+	 */
+	public void setTitle(String title) {
+		this.title = title;
+	}
 
 	public String getPublicationDate() {
 		return publicationDate;
@@ -122,6 +93,5 @@ public class Book  {
 	public void setStatus(String status) {
 		this.status = status;
 	}
-    
-    
+
 }

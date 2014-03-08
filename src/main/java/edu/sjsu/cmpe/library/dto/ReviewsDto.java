@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import edu.sjsu.cmpe.library.domain.Review;
-@JsonPropertyOrder(alphabetic = true)
+@JsonPropertyOrder({"reviews" ,"links"})
 public class ReviewsDto extends LinksDto {
 	private ArrayList<Review> reviews;
 

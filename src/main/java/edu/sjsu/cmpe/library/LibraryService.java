@@ -10,7 +10,7 @@ import com.yammer.dropwizard.config.Environment;
 import edu.sjsu.cmpe.library.api.resources.BookResource;
 import edu.sjsu.cmpe.library.api.resources.RootResource;
 import edu.sjsu.cmpe.library.config.LibraryServiceConfiguration;
-import edu.sjsu.cmpe.library.dto.BookDetail;
+import edu.sjsu.cmpe.library.domain.BookDetail;
 import edu.sjsu.cmpe.library.repository.BookRepository;
 import edu.sjsu.cmpe.library.repository.BookRepositoryInterface;
 
