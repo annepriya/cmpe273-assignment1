@@ -19,6 +19,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+
 import com.sun.jersey.spi.inject.Errors.ErrorMessagesException;
 import com.yammer.dropwizard.jersey.params.LongParam;
 import com.yammer.metrics.annotation.Timed;
@@ -36,6 +37,8 @@ import edu.sjsu.cmpe.library.dto.LinksDto;
 import edu.sjsu.cmpe.library.dto.ReviewDto;
 import edu.sjsu.cmpe.library.dto.ReviewsDto;
 import edu.sjsu.cmpe.library.repository.BookRepositoryInterface;
+
+import javax.ws.rs.core.Request;
 
 @Path("/v1/books")
 @Produces(MediaType.APPLICATION_JSON)
@@ -58,8 +61,8 @@ public class BookResource {
 	@GET
 	@Path("/{isbn}")
 	@Timed(name = "view-book")
-	public AuthorsDto getBookByIsbn(@PathParam("isbn") LongParam isbn) {
-
+	public AuthorsDto getBookByIsbn(@PathParam("isbn") LongParam isbn , @Context Request req, @Context UriInfo ui) {
+		
 		BookDetail book = bookRepository.getBookByISBN(isbn.get());
 		Book originalBook = createBookToView(book);
 		checkNotNull(book, " Book does not exist");
@@ -73,15 +76,33 @@ public class BookResource {
 			String location1 = "/books/" + book.getIsbn() + "/authors/"
 					+ authorsList[counter].getId();
 
-			authors.add(new LinkDto("view-author", location1, "POST"));
+			authors.add(new LinkDto("view-author", location1, "GET"));
 			counter++;
 			size--;
 		}
-		AuthorsDto bookResponse = new AuthorsDto(authors);
+		
+		int reviewCount=0;
+		ArrayList<Review> reviewsList=book.getReviews();
+		List<LinkDto> reviews = new ArrayList<LinkDto>();
+		if(reviewsList!=null){
+		int reviewSize=reviewsList.size();
+		
+		while (reviewSize > 0) {
+			String reviewLocation = "/books/" + book.getIsbn() + "/reviews/"
+					+ reviewsList.get(reviewCount).getId();
+
+			reviews.add(new LinkDto("view-rview", reviewLocation, "GET"));
+			reviewCount++;
+			reviewSize--;
+		}
+		}
+		
+		AuthorsDto bookResponse = new AuthorsDto(authors,reviews);
 		bookResponse.setBook(originalBook);
 		String location = "/books/" + book.getIsbn();
 
 		// add more links
+		
 
 		bookResponse.addLink(new LinkDto("view-book", location, "GET"));
 		bookResponse.addLink(new LinkDto("update-book", location, "PUT"));
@@ -90,9 +111,12 @@ public class BookResource {
 		if (book.getReviews() != null)
 			bookResponse.addLink(new LinkDto("view-all-reviews", location
 					+ "/reviews", "GET"));
-
+		
 		return bookResponse;
+		
 	}
+	
+	
 
 	/*
 	 * method populates a book instance for viewing
@@ -104,7 +128,6 @@ public class BookResource {
 		originalbook.setLanguage(book.getLanguage());
 		originalbook.setNumPages(book.getNumPages());
 		originalbook.setPublicationDate(book.getPublicationDate());
-		originalbook.setReviews(book.getReviews());
 		originalbook.setTitle(book.getTitle());
 		originalbook.setStatus(book.getStatus());
 		return originalbook;

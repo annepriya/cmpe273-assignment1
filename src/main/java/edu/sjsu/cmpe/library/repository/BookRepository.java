@@ -29,6 +29,9 @@ public class BookRepository implements BookRepositoryInterface {
 		checkNotNull(bookMap, "bookMap must not be null for BookRepository");
 		bookInMemoryMap = bookMap;
 		isbnKey = 0;
+		authorId=0;
+		reviewId=0;
+		
 	}
 
 	/**
@@ -73,17 +76,19 @@ public class BookRepository implements BookRepositoryInterface {
 
 	public void saveReviewToBook(BookDetail book, @Valid Review review) {
 		ArrayList<Review> reviews = new ArrayList<Review>();
-		reviewId = generateReviewId();
-
-		review.setId(reviewId);
+		
 		if (book.getReviews() != null) {
 			reviews = book.getReviews();
+		}else{
+			reviewId=0;
 		}
-
-		reviews.add(review);
+		reviewId = generateReviewId();
+        review.setId(reviewId);
+        reviews.add(review);
 		book.setReviews(reviews);
 		bookInMemoryMap.put(book.getIsbn(), book);
-		 reviewId=0;
+	
+		
 
 	}
 
@@ -105,7 +110,7 @@ public class BookRepository implements BookRepositoryInterface {
 		bookInMemoryMap.remove(existingBook.getIsbn(), existingBook);
 		if (existingBook.getIsbn() == 1)
 			isbnKey = 0;
-		authorId = 0;
+		
 
 	}
 

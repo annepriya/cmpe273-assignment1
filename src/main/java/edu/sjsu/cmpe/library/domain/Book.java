@@ -21,16 +21,7 @@ public class Book {
 	private String numPages;
 
 	private String status = "available";
-	@JsonProperty
-	private ArrayList<Review> reviews = new ArrayList<Review>();
-
-	public ArrayList<Review> getReviews() {
-		return reviews;
-	}
-
-	public void setReviews(ArrayList<Review> reviews) {
-		this.reviews = reviews;
-	}
+	
 
 	/**
 	 * @return the isbn
