@@ -2,6 +2,8 @@ package edu.sjsu.cmpe.library.api.resources;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +41,8 @@ import edu.sjsu.cmpe.library.dto.ReviewsDto;
 import edu.sjsu.cmpe.library.repository.BookRepositoryInterface;
 
 import javax.ws.rs.core.Request;
+import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.core.CacheControl;
 
 @Path("/v1/books")
 @Produces(MediaType.APPLICATION_JSON)
@@ -46,6 +50,7 @@ import javax.ws.rs.core.Request;
 public class BookResource {
 	/** bookRepository instance */
 	private final BookRepositoryInterface bookRepository;
+	private Date lastModified;
 
 	/**
 	 * BookResource constructor
@@ -55,18 +60,33 @@ public class BookResource {
 	 */
 	public BookResource(BookRepositoryInterface bookRepository) {
 		this.bookRepository = bookRepository;
-
+    
 	}
 
 	@GET
 	@Path("/{isbn}")
 	@Timed(name = "view-book")
-	public AuthorsDto getBookByIsbn(@PathParam("isbn") LongParam isbn , @Context Request req, @Context UriInfo ui) {
-		
+	public Response getBookByIsbn(@PathParam("isbn") LongParam isbn , @Context Request req, @Context UriInfo ui) {
+		int responseStatus=200;
 		BookDetail book = bookRepository.getBookByISBN(isbn.get());
+		if(book!=null){
 		Book originalBook = createBookToView(book);
 		checkNotNull(book, " Book does not exist");
-
+	   //implementation of conditional get
+	    CacheControl cc = new CacheControl();
+	    cc.setMaxAge(86400);
+		EntityTag eTag=new EntityTag(String.valueOf(lastModified.hashCode()));
+		Response.ResponseBuilder rb=req.evaluatePreconditions(eTag);
+		 // Preconditions met
+            if (rb != null) {
+            	return rb.cacheControl(cc).tag(eTag).build();
+               
+            }else{
+            // Preconditions not met
+            rb = Response.ok();
+            rb.tag(eTag);
+            }
+     
 		Author[] authorsList = book.getAuthors();
 		int counter = 0;
 		int size = authorsList.length;
@@ -111,8 +131,14 @@ public class BookResource {
 		if (book.getReviews() != null)
 			bookResponse.addLink(new LinkDto("view-all-reviews", location
 					+ "/reviews", "GET"));
-		
-		return bookResponse;
+		return rb.status(responseStatus).entity(bookResponse).build();
+		}else{
+			ErrorHandling error = new ErrorHandling();
+			error.setStatusCode("400");
+			error.setErrorDesc("book does not exist");
+			return Response.status(400).entity(error).build();
+			
+		}
 		
 	}
 	
@@ -161,6 +187,7 @@ public class BookResource {
 			return Response.status(400).entity(error).build();
 		}
 		BookDetail savedBook = bookRepository.saveBook(request);
+		lastModified=new Date();
 
 		String location = "/books/" + savedBook.getIsbn();
 		// Add other links if needed
@@ -181,10 +208,17 @@ public class BookResource {
 	public Response deleteBook(@PathParam("isbn") LongParam isbn) {
 
 		Book book = bookRepository.getBookByISBN(isbn.get());
+		if(book!=null){
 		bookRepository.deleteBook(book);
 		LinksDto links = new LinksDto();
 		links.addLink(new LinkDto("create-book", "/books", "POST"));
 		return Response.status(200).entity(links).build();
+		}else{
+			ErrorHandling error = new ErrorHandling();
+			error.setStatusCode("400");
+			error.setErrorDesc("book does not exist");
+			return Response.status(400).entity(error).build();
+		}
 	}
 
 	@PUT
@@ -194,7 +228,8 @@ public class BookResource {
 			@Context UriInfo uriInfo) {
 
 		BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
-		checkNotNull(book, " Book does not exist");
+		ErrorHandling error = new ErrorHandling();
+		if(book!=null){
 
 		MultivaluedMap<String, String> queryParams = uriInfo
 				.getQueryParameters();
@@ -204,7 +239,7 @@ public class BookResource {
 					&& !status.equalsIgnoreCase("lost")
 					&& !status.equalsIgnoreCase("checked-out")
 					&& !status.equalsIgnoreCase("in-queue")) {
-				ErrorHandling error = new ErrorHandling();
+				
 				error.setStatusCode("400");
 				error.setErrorDesc("status should be {available,lost,checked-out,in-queue} in lower case letters");
 				return Response.status(400).entity(error).build();
@@ -213,6 +248,7 @@ public class BookResource {
 
 		}
 		bookRepository.updateBook(book, queryParams);
+		lastModified=new Date();
 		String location = "/books/" + book.getIsbn();
 		LinksDto links = new LinksDto();
 		links.addLink(new LinkDto("create-book", location, "POST"));
@@ -223,6 +259,11 @@ public class BookResource {
 			links.addLink(new LinkDto("view-all-reviews",
 					location + "/reviews", "GET"));
 		return Response.status(200).entity(links).build();
+		}else{
+			error.setStatusCode("400");
+			error.setErrorDesc("book does not exist");
+			return Response.status(400).entity(error).build();
+			}
 
 	}
 
@@ -249,22 +290,28 @@ public class BookResource {
 	@GET
 	@Path("/{isbn}/authors")
 	@Timed(name = "view-all-authors")
-	public AuthorArrayDto viewAllAuthors(@PathParam("isbn") LongParam isbn) {
+	public Response viewAllAuthors(@PathParam("isbn") LongParam isbn) {
 		BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
-		checkNotNull(book, " Book does not exist");
+		if(book!=null){
 		Author[] authorArray = book.getAuthors();
 		AuthorArrayDto authors = new AuthorArrayDto(authorArray);
-
-		return authors;
+		return Response.status(200).entity(authors).build();
+	}else{
+		ErrorHandling error = new ErrorHandling();
+		error.setStatusCode("400");
+		error.setErrorDesc("book does not exist");
+		return Response.status(400).entity(error).build();
+	}
+		
 	}
 
 	@GET
 	@Path("/{isbn}/authors/{id}")
 	@Timed(name = "view-author")
-	public AuthorDto viewAuthor(@PathParam("isbn") LongParam isbn,
+	public Response viewAuthor(@PathParam("isbn") LongParam isbn,
 			@PathParam("id") LongParam id) {
 		BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
-		checkNotNull(book, " Book does not exist");
+		if(book!=null){
 		Author author = new Author();
 		long authorId = id.get();
 
@@ -286,7 +333,13 @@ public class BookResource {
 		AuthorDto authorResponse = new AuthorDto(author);
 		authorResponse.addLink(new LinkDto("view-author", "/books/" + isbn
 				+ "/authors/" + author.getId(), "GET"));
-		return authorResponse;
+		return Response.status(200).entity(authorResponse).build();
+		}else{
+			ErrorHandling error = new ErrorHandling();
+			error.setStatusCode("400");
+			error.setErrorDesc("book does not exist");
+			return Response.status(400).entity(error).build();
+		}
 
 	}
 
@@ -295,27 +348,36 @@ public class BookResource {
 	@Timed(name = "create-review")
 	public Response createBookReview(@Valid Review review,
 			@PathParam("isbn") LongParam isbn) {
-		checkNotNull(review, "review can't be null");
+		if(review!=null){
 		BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
 		bookRepository.saveReviewToBook(book, review);
+        lastModified=new Date();
 		LinksDto links = new LinksDto();
 		links.addLink(new LinkDto("view-review", "/books/" + isbn + "/reviews/"
 				+ review.getId(), "GET"));
 		return Response.status(201).entity(links).build();
+		}else{
+			ErrorHandling error = new ErrorHandling();
+			error.setStatusCode("400");
+			error.setErrorDesc("review does not exist");
+			return Response.status(400).entity(error).build();
+		}
 
 	}
 
 	@GET
 	@Path("{isbn}/reviews/{id}")
 	@Timed(name = "view-review")
-	public ReviewDto viewBookReview(@PathParam("isbn") LongParam isbn,
+	public Response viewBookReview(@PathParam("isbn") LongParam isbn,
 			@PathParam("id") LongParam reviewId) {
-
+		ErrorHandling error = new ErrorHandling();
 		BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
-		checkNotNull(book, "book does not exist");
+		ReviewDto reviewDto=null;
+		if(book!=null){
 		long id = reviewId.get();
 		Review review = new Review();
 		ArrayList<Review> reviews = book.getReviews();
+		if(reviews!=null){
 		int numOfReviews = reviews.size();
 		int index = 0;
 		while (numOfReviews > 0) {
@@ -326,23 +388,41 @@ public class BookResource {
 			numOfReviews--;
 		}
 
-		ReviewDto reviewDto = new ReviewDto(review);
+		 reviewDto = new ReviewDto(review);
 		reviewDto.addLink(new LinkDto("view-review", "/books/" + isbn
 				+ "/reviews/" + id, "GET"));
-		return reviewDto;
+		}else{
+			
+			error.setStatusCode("400");
+			error.setErrorDesc("No reviews exist for the book");
+			return Response.status(400).entity(error).build();
+		}
+		return Response.status(201).entity(reviewDto).build();
+		}else{
+			error.setStatusCode("400");
+			error.setErrorDesc("book does not exist");
+			return Response.status(400).entity(error).build();
+		}
 
 	}
 
 	@GET
 	@Path("{isbn}/reviews")
 	@Timed(name = "view-all-reviews")
-	public ReviewsDto viewAllReviews(@PathParam("isbn") LongParam isbn) {
+	public Response viewAllReviews(@PathParam("isbn") LongParam isbn) {
 		BookDetail book = (BookDetail) bookRepository.getBookByISBN(isbn.get());
-		checkNotNull(book, "book does not exist");
+		if(book!=null){
 		ArrayList<Review> reviewList = book.getReviews();
 		ReviewsDto reviews = new ReviewsDto(reviewList);
-		return reviews;
+		return Response.status(201).entity(reviews).build();
+		}else{
+			ErrorHandling error=new ErrorHandling();
+			error.setStatusCode("400");
+			error.setErrorDesc("book does not exist");
+			return Response.status(400).entity(error).build();
+		}
+		}
 
-	}
+	
 
 }
