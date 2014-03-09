@@ -73,18 +73,18 @@ public class BookResource {
 		Book originalBook = createBookToView(book);
 		checkNotNull(book, " Book does not exist");
 	   //implementation of conditional get
-	    CacheControl cc = new CacheControl();
-	    cc.setMaxAge(86400);
+	    CacheControl cacheControl = new CacheControl();
+	    cacheControl.setMaxAge(86400);
 		EntityTag eTag=new EntityTag(String.valueOf(lastModified.hashCode()));
-		Response.ResponseBuilder rb=req.evaluatePreconditions(eTag);
-		 // Preconditions met
-            if (rb != null) {
-            	return rb.cacheControl(cc).tag(eTag).build();
+		Response.ResponseBuilder response=req.evaluatePreconditions(eTag);
+		 
+            if (response != null) {
+            	return response.cacheControl(cacheControl).tag(eTag).build();
                
             }else{
-            // Preconditions not met
-            rb = Response.ok();
-            rb.tag(eTag);
+            
+            	response = Response.ok();
+            	response.tag(eTag);
             }
      
 		Author[] authorsList = book.getAuthors();
@@ -131,7 +131,7 @@ public class BookResource {
 		if (book.getReviews() != null)
 			bookResponse.addLink(new LinkDto("view-all-reviews", location
 					+ "/reviews", "GET"));
-		return rb.status(responseStatus).entity(bookResponse).build();
+		return response.status(responseStatus).entity(bookResponse).build();
 		}else{
 			ErrorHandling error = new ErrorHandling();
 			error.setStatusCode("400");
